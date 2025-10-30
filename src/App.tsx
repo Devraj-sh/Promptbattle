@@ -6,9 +6,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Learn from "./pages/Learn";
 import ArenaPage from "./pages/ArenaPage";
-import MultiplayerPage from "./pages/MultiplayerPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
 import NotFound from "./pages/NotFound";
+import { ScribbleHome } from "./components/scribble/ScribbleHome";
+import { ScribbleRoom } from "./components/scribble/ScribbleRoom";
 
 const queryClient = new QueryClient();
 
@@ -20,10 +21,11 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-        <Route path="/learn" element={<Learn />} />
-        <Route path="/arena" element={<ArenaPage />} />
-        <Route path="/multiplayer" element={<MultiplayerPage />} />
-        <Route path="/leaderboard" element={<LeaderboardPage />} />
+          <Route path="/learn" element={<Learn />} />
+          <Route path="/arena" element={<ArenaPage />} />
+          <Route path="/battle" element={<ScribbleHome />} />
+          <Route path="/battle/room/:roomCode" element={<ScribbleRoom />} />
+          <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
