@@ -194,11 +194,11 @@ export const ReactorLesson = ({ onComplete }: ReactorLessonProps) => {
           <div className="space-y-4">
             <div>
               <label className="text-sm font-semibold mb-2 block">AI Response</label>
-              <div className="glass p-6 rounded-lg border border-primary/20 min-h-[300px] max-h-[400px] overflow-y-auto">
+              <div className="glass p-6 rounded-lg border border-primary/20 min-h-[250px] max-h-[350px] overflow-y-auto">
                 {isLoading ? (
                   <div className="flex items-center justify-center h-full text-muted-foreground">
                     <Loader2 className="w-6 h-6 mr-2 animate-spin" />
-                    <span className="text-sm">AI is generating...</span>
+                    <span className="text-sm">AI is thinking...</span>
                   </div>
                 ) : response ? (
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">{response}</p>
@@ -209,6 +209,95 @@ export const ReactorLesson = ({ onComplete }: ReactorLessonProps) => {
                 )}
               </div>
             </div>
+
+            {/* AI Thinking Process */}
+            {basePrompt.trim() && (
+              <div className="glass p-4 rounded-lg border border-secondary/30 bg-secondary/5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🤖💭</span>
+                  <span className="text-sm font-semibold">AI's Thinking Bubble:</span>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2 text-sm">
+                    <span className="text-lg">📖</span>
+                    <p className="text-muted-foreground">
+                      <span className="font-bold text-secondary">Reading:</span> "{basePrompt.slice(0, 40)}..."
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-start gap-2 text-sm">
+                    <span className="text-lg">🎚️</span>
+                    <div className="flex-1">
+                      <p className="text-muted-foreground">
+                        <span className="font-bold text-primary">Checking my settings:</span>
+                      </p>
+                      <ul className="mt-1 ml-4 space-y-1 text-xs">
+                        <li className="text-muted-foreground">
+                          • <span className="text-primary">Tone {getToneLabel(tone)}:</span> {tone < 30 ? 'I\'ll sound serious and factual' : tone < 70 ? 'I\'ll be balanced and friendly' : 'I\'ll be super fun and casual!'}
+                        </li>
+                        <li className="text-muted-foreground">
+                          • <span className="text-secondary">Detail {getDetailLabel(detail)}:</span> {detail < 30 ? 'I\'ll keep it quick and simple' : detail < 70 ? 'I\'ll give a good amount of info' : 'I\'ll explain everything deeply!'}
+                        </li>
+                        <li className="text-muted-foreground">
+                          • <span className="text-primary">Creativity {getCreativityLabel(creativity)}:</span> {creativity < 30 ? 'I\'ll stick to facts only' : creativity < 70 ? 'I\'ll add some creative touches' : 'I\'ll be super imaginative!'}
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  {response && (
+                    <>
+                      <div className="flex items-start gap-2 text-sm">
+                        <span className="text-lg">✨</span>
+                        <div className="flex-1">
+                          <p className="text-muted-foreground">
+                            <span className="font-bold text-secondary">Why this response:</span>
+                          </p>
+                          <ul className="mt-1 ml-4 space-y-1 text-xs">
+                            <li className="text-muted-foreground">
+                              • My <span className="text-primary">tone slider</span> told me how formal or fun to be
+                            </li>
+                            <li className="text-muted-foreground">
+                              • My <span className="text-secondary">detail slider</span> decided how much to explain
+                            </li>
+                            <li className="text-muted-foreground">
+                              • My <span className="text-primary">creativity slider</span> controlled if I should be factual or imaginative
+                            </li>
+                            <li className="text-muted-foreground">
+                              • I combined all these to make the <span className="text-secondary">perfect answer</span> for you!
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2 text-sm pt-2 border-t border-primary/10">
+                        <span className="text-lg">💡</span>
+                        <div className="flex-1">
+                          <p className="text-muted-foreground">
+                            <span className="font-bold text-yellow-500">Experiment more:</span>
+                          </p>
+                          <ul className="mt-1 ml-4 space-y-1 text-xs">
+                            <li className="text-muted-foreground">
+                              • Try <span className="text-yellow-500">extreme settings</span> (all low or all high) to see big differences!
+                            </li>
+                            <li className="text-muted-foreground">
+                              • Mix <span className="text-yellow-500">high creativity with low tone</span> for fun formal answers
+                            </li>
+                            <li className="text-muted-foreground">
+                              • Use <span className="text-yellow-500">high detail + low creativity</span> for factual deep dives
+                            </li>
+                            <li className="text-muted-foreground">
+                              • Change <span className="text-yellow-500">one slider at a time</span> to see what each one does!
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
 
             {!isApiKeyConfigured() && (
               <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">

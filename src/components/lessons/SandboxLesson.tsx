@@ -137,7 +137,93 @@ export const SandboxLesson = ({ onComplete }: SandboxLessonProps) => {
                 )}
               </div>
             </div>
-            
+
+            {/* AI Thinking Process */}
+            {prompt.trim() && (
+              <div className="glass p-4 rounded-lg border border-secondary/30 bg-secondary/5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🤖💭</span>
+                  <span className="text-sm font-semibold">AI's Thinking Bubble:</span>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2 text-sm">
+                    <span className="text-lg">📖</span>
+                    <p className="text-muted-foreground">
+                      <span className="font-bold text-secondary">Reading:</span> "{prompt.slice(0, 60)}{prompt.length > 60 ? '...' : ''}"
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-start gap-2 text-sm">
+                    <span className="text-lg">🤔</span>
+                    <div className="flex-1">
+                      <p className="text-muted-foreground">
+                        <span className="font-bold text-primary">Understanding:</span> Let me figure out what you want...
+                      </p>
+                      <ul className="mt-1 ml-4 space-y-1 text-xs">
+                        <li className="text-muted-foreground">
+                          • Is this a <span className="text-primary">question</span> or a <span className="text-primary">command</span>?
+                        </li>
+                        <li className="text-muted-foreground">
+                          • What <span className="text-secondary">type of answer</span> do you need? (story, explanation, list, etc.)
+                        </li>
+                        <li className="text-muted-foreground">
+                          • Are there any <span className="text-primary">special words</span> that tell me how to respond?
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  {response && (
+                    <>
+                      <div className="flex items-start gap-2 text-sm">
+                        <span className="text-lg">✨</span>
+                        <div className="flex-1">
+                          <p className="text-muted-foreground">
+                            <span className="font-bold text-secondary">Why I answered this way:</span>
+                          </p>
+                          <ul className="mt-1 ml-4 space-y-1 text-xs">
+                            <li className="text-muted-foreground">
+                              • I looked for <span className="text-primary">key words</span> in your prompt
+                            </li>
+                            <li className="text-muted-foreground">
+                              • I matched the <span className="text-secondary">style</span> you seemed to want
+                            </li>
+                            <li className="text-muted-foreground">
+                              • I made sure my answer was <span className="text-primary">helpful and clear</span>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2 text-sm pt-2 border-t border-primary/10">
+                        <span className="text-lg">💡</span>
+                        <div className="flex-1">
+                          <p className="text-muted-foreground">
+                            <span className="font-bold text-yellow-500">Make it even better:</span>
+                          </p>
+                          <ul className="mt-1 ml-4 space-y-1 text-xs">
+                            <li className="text-muted-foreground">
+                              • Try adding <span className="text-yellow-500">more details</span> about what you want
+                            </li>
+                            <li className="text-muted-foreground">
+                              • Tell me <span className="text-yellow-500">who the answer is for</span> (kid, adult, expert?)
+                            </li>
+                            <li className="text-muted-foreground">
+                              • Mention the <span className="text-yellow-500">length</span> you want (short, long, 3 sentences?)
+                            </li>
+                            <li className="text-muted-foreground">
+                              • Use words like "explain", "describe", "create" to be <span className="text-yellow-500">super clear</span>!
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* API Status Indicator */}
             {!isApiKeyConfigured() && (
               <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
