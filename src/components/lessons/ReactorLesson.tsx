@@ -2,28 +2,89 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, AlertCircle, Sparkles } from "lucide-react";
 import { AIOrb } from "../AIOrb";
+import { generateResponse, isApiKeyConfigured } from "@/lib/gemini";
+import { useToast } from "@/hooks/use-toast";
 
 interface ReactorLessonProps {
   onComplete: () => void;
 }
 
 export const ReactorLesson = ({ onComplete }: ReactorLessonProps) => {
+  const [basePrompt, setBasePrompt] = useState("Explain artificial intelligence");
   const [tone, setTone] = useState(50);
   const [detail, setDetail] = useState(50);
   const [creativity, setCreativity] = useState(50);
-  const [hasAdjusted, setHasAdjusted] = useState(false);
+  const [response, setResponse] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasGenerated, setHasGenerated] = useState(false);
+  const { toast } = useToast();
 
-  const basePrompt = "Explain artificial intelligence";
-  const generatedResponse = generateResponseFromSliders(tone, detail, creativity);
+  const handleGenerate = async () => {
+    if (!isApiKeyConfigured()) {
+      toast({
+        title: "API Key Not Configured",
+        description: "Please configure your Gemini API key in the .env file.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const handleSliderChange = () => {
-    if (!hasAdjusted) {
-      setHasAdjusted(true);
+    if (!basePrompt.trim()) {
+      toast({
+        title: "Empty Prompt",
+        description: "Please enter a prompt first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    setResponse("");
+
+    try {
+      // Convert slider values to parameters
+      const temperature = creativity / 100; // 0-1 range
+      const maxTokens = Math.floor((detail / 100) * 300) + 50; // 50-350 tokens
+      
+      // Build system message based on tone
+      const toneInstruction = getToneInstruction(tone);
+      const systemMessage = `${toneInstruction} Keep your response concise and clear.`;
+
+      const aiResponse = await generateResponse({
+        prompt: basePrompt,
+        systemMessage,
+        temperature,
+        maxTokens,
+        model: 'gemini-2.0-flash'
+      });
+
+      setResponse(aiResponse);
+      
+      if (!hasGenerated) {
+        setHasGenerated(true);
+      }
+
+      toast({
+        title: "Response Generated!",
+        description: "The AI has responded with your custom parameters.",
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate response";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      console.error("Error generating response:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const orbIntensity = (tone + detail + creativity) / 150;
+  const orbIntensity = isLoading ? 1.2 : (tone + detail + creativity) / 300;
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -32,94 +93,141 @@ export const ReactorLesson = ({ onComplete }: ReactorLessonProps) => {
           🧠 Lesson 2: How AI Interprets Prompts
         </h2>
         <p className="text-lg text-muted-foreground mb-6">
-          AI responses change based on how you frame your prompt. Adjust the sliders to see how tone, detail level, and creativity affect the output.
+          AI responses change based on how you frame your prompt. Adjust the parameters to see how tone, detail level, and creativity affect the output.
         </p>
 
         <div className="grid md:grid-cols-2 gap-8">
           {/* Controls */}
           <div className="space-y-6">
-            <div className="glass p-6 rounded-lg border border-primary/20">
-              <p className="font-semibold mb-4">Base Prompt:</p>
-              <p className="text-muted-foreground italic">"{basePrompt}"</p>
+            <div>
+              <label className="text-sm font-semibold mb-2 block">Your Prompt</label>
+              <Textarea
+                value={basePrompt}
+                onChange={(e) => setBasePrompt(e.target.value)}
+                placeholder="Enter your prompt here..."
+                className="min-h-[100px] glass border-primary/20 focus:border-primary/50"
+              />
             </div>
 
             <div className="space-y-6">
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <label className="text-sm font-semibold">Tone</label>
-                  <span className="text-xs text-muted-foreground">
-                    {getToneLabel(tone)}
+                  <span className="text-xs px-2 py-1 rounded-full glass border border-primary/30">
+                    {getToneLabel(tone)} ({tone}%)
                   </span>
                 </div>
                 <Slider
                   value={[tone]}
-                  onValueChange={(val) => {
-                    setTone(val[0]);
-                    handleSliderChange();
-                  }}
+                  onValueChange={(val) => setTone(val[0])}
                   max={100}
-                  step={1}
+                  step={10}
                   className="w-full"
                 />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Professional</span>
+                  <span>Playful</span>
+                </div>
               </div>
 
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <label className="text-sm font-semibold">Detail Level</label>
-                  <span className="text-xs text-muted-foreground">
-                    {getDetailLabel(detail)}
+                  <span className="text-xs px-2 py-1 rounded-full glass border border-secondary/30">
+                    {getDetailLabel(detail)} ({detail}%)
                   </span>
                 </div>
                 <Slider
                   value={[detail]}
-                  onValueChange={(val) => {
-                    setDetail(val[0]);
-                    handleSliderChange();
-                  }}
+                  onValueChange={(val) => setDetail(val[0])}
                   max={100}
-                  step={1}
+                  step={10}
                   className="w-full"
                 />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Brief</span>
+                  <span>Comprehensive</span>
+                </div>
               </div>
 
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <label className="text-sm font-semibold">Creativity</label>
-                  <span className="text-xs text-muted-foreground">
-                    {getCreativityLabel(creativity)}
+                  <span className="text-xs px-2 py-1 rounded-full glass border border-primary/30">
+                    {getCreativityLabel(creativity)} ({creativity}%)
                   </span>
                 </div>
                 <Slider
                   value={[creativity]}
-                  onValueChange={(val) => {
-                    setCreativity(val[0]);
-                    handleSliderChange();
-                  }}
+                  onValueChange={(val) => setCreativity(val[0])}
                   max={100}
-                  step={1}
+                  step={10}
                   className="w-full"
                 />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Factual</span>
+                  <span>Imaginative</span>
+                </div>
               </div>
             </div>
+
+            <Button
+              onClick={handleGenerate}
+              disabled={!basePrompt.trim() || isLoading}
+              className="w-full bg-gradient-to-r from-primary to-primary-glow"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Generate with Parameters
+                </>
+              )}
+            </Button>
           </div>
 
           {/* Response Display */}
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-semibold mb-2 block">Generated Response</label>
-              <div className="glass p-6 rounded-lg border border-primary/20 min-h-[300px]">
-                <p className="text-sm leading-relaxed">{generatedResponse}</p>
+              <label className="text-sm font-semibold mb-2 block">AI Response</label>
+              <div className="glass p-6 rounded-lg border border-primary/20 min-h-[300px] max-h-[400px] overflow-y-auto">
+                {isLoading ? (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <Loader2 className="w-6 h-6 mr-2 animate-spin" />
+                    <span className="text-sm">AI is generating...</span>
+                  </div>
+                ) : response ? (
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{response}</p>
+                ) : (
+                  <p className="text-muted-foreground text-sm italic">
+                    Adjust the parameters and click generate to see how they affect the AI's response...
+                  </p>
+                )}
               </div>
             </div>
 
+            {!isApiKeyConfigured() && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+                <AlertCircle className="w-4 h-4 text-destructive mt-0.5" />
+                <div className="text-xs text-destructive">
+                  <p className="font-semibold">API Key Required</p>
+                  <p className="text-muted-foreground">Configure your Gemini API key to use real AI responses.</p>
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-center pt-4">
-              <AIOrb mood="thinking" intensity={orbIntensity} />
+              <AIOrb mood={isLoading ? "thinking" : response ? "happy" : "neutral"} intensity={orbIntensity} />
             </div>
           </div>
         </div>
       </Card>
 
-      {hasAdjusted && (
+      {hasGenerated && !isLoading && (
         <Card className="glass p-6 border-primary/50 animate-scale-in">
           <div className="text-center space-y-4">
             <div className="text-5xl">🎛️</div>
@@ -128,7 +236,7 @@ export const ReactorLesson = ({ onComplete }: ReactorLessonProps) => {
             </h3>
             <p className="text-muted-foreground">
               You've learned how AI interpretation changes with different parameters. 
-              This understanding is key to crafting effective prompts!
+              Try adjusting the sliders to see how tone, detail, and creativity affect the response!
             </p>
             <Button
               onClick={onComplete}
@@ -143,49 +251,34 @@ export const ReactorLesson = ({ onComplete }: ReactorLessonProps) => {
   );
 };
 
+function getToneInstruction(value: number): string {
+  if (value <= 20) return "Respond in a very professional, formal, and technical manner.";
+  if (value <= 40) return "Respond in a professional and clear manner.";
+  if (value <= 60) return "Respond in a neutral and balanced manner.";
+  if (value <= 80) return "Respond in a casual and friendly manner.";
+  return "Respond in a playful, fun, and engaging manner with enthusiasm.";
+}
+
 function getToneLabel(value: number): string {
-  if (value < 25) return "Professional";
-  if (value < 50) return "Neutral";
-  if (value < 75) return "Casual";
+  if (value <= 20) return "Very Professional";
+  if (value <= 40) return "Professional";
+  if (value <= 60) return "Neutral";
+  if (value <= 80) return "Casual";
   return "Playful";
 }
 
 function getDetailLabel(value: number): string {
-  if (value < 25) return "Brief";
-  if (value < 50) return "Moderate";
-  if (value < 75) return "Detailed";
+  if (value <= 20) return "Very Brief";
+  if (value <= 40) return "Brief";
+  if (value <= 60) return "Moderate";
+  if (value <= 80) return "Detailed";
   return "Comprehensive";
 }
 
 function getCreativityLabel(value: number): string {
-  if (value < 25) return "Factual";
-  if (value < 50) return "Balanced";
-  if (value < 75) return "Creative";
-  return "Imaginative";
-}
-
-function generateResponseFromSliders(tone: number, detail: number, creativity: number): string {
-  const toneLevel = Math.floor(tone / 25);
-  const detailLevel = Math.floor(detail / 25);
-  const creativityLevel = Math.floor(creativity / 25);
-
-  const responses = {
-    professional: {
-      brief: "Artificial Intelligence refers to computer systems designed to perform tasks that typically require human intelligence.",
-      moderate: "Artificial Intelligence (AI) encompasses machine learning, neural networks, and algorithms that enable systems to analyze data, recognize patterns, and make decisions with minimal human intervention.",
-      detailed: "Artificial Intelligence represents a comprehensive field of computer science focused on creating systems capable of performing tasks that traditionally require human cognitive abilities, including visual perception, speech recognition, decision-making, and language translation.",
-      comprehensive: "Artificial Intelligence is a multifaceted discipline within computer science that develops sophisticated systems capable of simulating human intelligence through machine learning algorithms, neural networks, natural language processing, computer vision, and automated reasoning, enabling machines to learn from experience and adapt to new inputs."
-    },
-    creative: {
-      brief: "AI is like teaching computers to think! 🤖✨",
-      moderate: "Imagine giving a computer a brain - that's AI! It learns patterns, makes decisions, and can even create art or write stories.",
-      detailed: "Picture this: machines that can learn from their mistakes, recognize your face in photos, chat with you naturally, and even dream up new ideas. That's the magic of AI!",
-      comprehensive: "Artificial Intelligence is humanity's attempt to create digital minds - systems that don't just follow instructions, but truly understand, learn, and evolve. From self-driving cars navigating busy streets to AI artists painting masterpieces, these silicon brains are reshaping our world in ways we're only beginning to imagine! 🚀🎨🧠"
-    }
-  };
-
-  const toneKey = toneLevel < 2 ? 'professional' : 'creative';
-  const detailKey = ['brief', 'moderate', 'detailed', 'comprehensive'][detailLevel] as keyof typeof responses.professional;
-
-  return responses[toneKey][detailKey];
+  if (value <= 20) return "Very Factual";
+  if (value <= 40) return "Factual";
+  if (value <= 60) return "Balanced";
+  if (value <= 80) return "Creative";
+  return "Very Imaginative";
 }
