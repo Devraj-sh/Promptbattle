@@ -15,51 +15,51 @@ All colors MUST be HSL.
     --orange-glow: 14 100% 75%;
     --navy: 220 52% 8%;
     --navy-light: 220 40% 15%;
-    
+
     /* Theme Colors */
     --background: 220 52% 8%;
     --foreground: 210 25% 98%;
-    
+
     --card: 220 40% 12%;
     --card-foreground: 210 25% 98%;
-    
+
     --popover: 220 40% 15%;
     --popover-foreground: 210 25% 98%;
-    
+
     --primary: 185 100% 41%;
     --primary-foreground: 220 52% 8%;
     --primary-glow: 185 100% 55%;
-    
+
     --secondary: 14 100% 68%;
     --secondary-foreground: 220 52% 8%;
     --secondary-glow: 14 100% 75%;
-    
+
     --accent: 185 80% 50%;
     --accent-foreground: 220 52% 8%;
-    
+
     --muted: 220 30% 20%;
     --muted-foreground: 210 15% 65%;
-    
+
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 25% 98%;
-    
+
     --border: 220 30% 25%;
     --input: 220 30% 20%;
     --ring: 185 100% 41%;
-    
+
     --radius: 1rem;
-    
+
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(185, 100%, 41%), hsl(185, 100%, 55%));
     --gradient-secondary: linear-gradient(135deg, hsl(14, 100%, 68%), hsl(14, 100%, 75%));
     --gradient-hero: linear-gradient(135deg, hsl(185, 100%, 41%) 0%, hsl(14, 100%, 68%) 100%);
     --gradient-dark: linear-gradient(180deg, hsl(220, 52%, 8%) 0%, hsl(220, 40%, 12%) 100%);
-    
+
     /* Shadows & Glows */
     --shadow-glow-teal: 0 0 40px hsla(185, 100%, 41%, 0.3);
     --shadow-glow-orange: 0 0 40px hsla(14, 100%, 68%, 0.3);
     --shadow-card: 0 10px 40px hsla(220, 52%, 8%, 0.5);
-    
+
     /* Animations */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
@@ -81,16 +81,28 @@ All colors MUST be HSL.
   .glass {
     @apply bg-card/40 backdrop-blur-xl border border-border/50;
   }
-  
+
   .glow-teal {
     box-shadow: 0 0 40px hsla(185, 100%, 41%, 0.3);
   }
-  
+
   .glow-orange {
     box-shadow: 0 0 40px hsla(14, 100%, 68%, 0.3);
   }
-  
+
   .text-gradient {
     @apply bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent;
+  }
+
+  .animate-delay-200 {
+    animation-delay: 0.2s;
+  }
+
+  .animate-delay-400 {
+    animation-delay: 0.4s;
+  }
+
+  .animate-delay-1000 {
+    animation-delay: 1s;
   }
 }

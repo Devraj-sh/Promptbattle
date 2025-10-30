@@ -39,7 +39,7 @@ export const PlayerLobby = ({ room, isHost, onToggleReady, onStartGame, onLeave 
   };
 
   const allReady = room.players.filter(p => !p.isHost).every(p => p.isReady);
-  const canStart = room.players.length >= 2 && allReady;
+  const canStart = room.players.length >= 1 && (room.players.length === 1 || allReady);
 
   return (
     <div className="min-h-screen p-4 py-12">
@@ -170,14 +170,14 @@ export const PlayerLobby = ({ room, isHost, onToggleReady, onStartGame, onLeave 
                 >
                   <Sparkles className="w-5 h-5 mr-2" />
                   {!canStart
-                    ? room.players.length < 2
-                      ? 'Need 2+ Players'
+                    ? room.players.length < 1
+                      ? 'Need 1+ Player'
                       : 'Waiting for Ready...'
                     : 'Start Game'}
                 </Button>
                 <p className="text-xs text-center text-muted-foreground">
-                  {room.players.length < 2 && "At least 2 players needed to start"}
-                  {room.players.length >= 2 && !allReady && "All players must be ready"}
+                  {room.players.length < 1 && "At least 1 player needed to start"}
+                  {room.players.length > 1 && !allReady && "All players must be ready"}
                   {canStart && "All ready! Click to start the game"}
                 </p>
               </>
@@ -217,9 +217,9 @@ export const PlayerLobby = ({ room, isHost, onToggleReady, onStartGame, onLeave 
             </div>
             <div className="text-center space-y-2">
               <div className="text-3xl">⏱️</div>
-              <p className="font-semibold">60 Seconds</p>
+              <p className="font-semibold">30 Seconds</p>
               <p className="text-xs text-muted-foreground">
-                60s to write prompt, 60s to vote
+                30s to write prompt, 30s to vote
               </p>
             </div>
             <div className="text-center space-y-2">

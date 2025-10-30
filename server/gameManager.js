@@ -142,15 +142,15 @@ export class GameManager {
       return;
     }
 
-    // Need at least 2 players
-    if (room.players.length < 2) {
-      socket.emit('error', { message: 'Need at least 2 players to start' });
+    // Need at least 1 player (for testing/debugging)
+    if (room.players.length < 1) {
+      socket.emit('error', { message: 'Need at least 1 player to start' });
       return;
     }
 
     // All non-host players must be ready
     const allReady = room.players.filter(p => !p.isHost).every(p => p.isReady);
-    if (!allReady) {
+    if (!allReady && room.players.length > 1) {
       socket.emit('error', { message: 'All players must be ready' });
       return;
     }
@@ -186,8 +186,8 @@ export class GameManager {
       totalRounds: room.maxRounds
     });
 
-    // Start 60s timer for prompting
-    this.startTimer(room, 60, () => {
+    // Start 30s timer for prompting
+    this.startTimer(room, 30, () => {
       this.generateImages(room);
     });
   }
@@ -249,8 +249,8 @@ export class GameManager {
       images: shuffledImages
     });
 
-    // Start 60s timer for voting
-    this.startTimer(room, 60, () => {
+    // Start 30s timer for voting
+    this.startTimer(room, 30, () => {
       this.revealResults(room);
     });
   }

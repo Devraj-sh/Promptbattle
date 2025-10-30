@@ -41,11 +41,11 @@ export const GeneratingPhase = ({ room, word }: GeneratingPhaseProps) => {
                 <Sparkles className="w-5 h-5 text-yellow-400" />
                 <p className="text-sm text-muted-foreground">Processing prompts...</p>
               </div>
-              <div className="flex items-center justify-center gap-2 animate-pulse" style={{ animationDelay: '0.2s' }}>
+              <div className="flex items-center justify-center gap-2 animate-pulse animate-delay-200">
                 <Sparkles className="w-5 h-5 text-blue-400" />
                 <p className="text-sm text-muted-foreground">Creating unique images...</p>
               </div>
-              <div className="flex items-center justify-center gap-2 animate-pulse" style={{ animationDelay: '0.4s' }}>
+              <div className="flex items-center justify-center gap-2 animate-pulse animate-delay-400">
                 <Sparkles className="w-5 h-5 text-purple-400" />
                 <p className="text-sm text-muted-foreground">Adding final touches...</p>
               </div>

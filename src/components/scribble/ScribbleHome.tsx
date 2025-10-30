@@ -258,7 +258,7 @@ export const ScribbleHome = () => {
               <div className="text-4xl mb-2">✍️</div>
               <h4 className="font-semibold">1. Write Prompt</h4>
               <p className="text-sm text-muted-foreground">
-                Get a word and write a creative prompt to generate an image (60s)
+                Get a word and write a creative prompt to generate an image (30s)
               </p>
             </div>
             <div className="text-center space-y-2">
@@ -272,7 +272,7 @@ export const ScribbleHome = () => {
               <div className="text-4xl mb-2">🏆</div>
               <h4 className="font-semibold">3. Vote & Win</h4>
               <p className="text-sm text-muted-foreground">
-                Vote for the best images (60s), then names are revealed!
+                Vote for the best images (30s), then names are revealed!
               </p>
             </div>
           </div>

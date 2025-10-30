@@ -31,7 +31,7 @@ export const PromptPhase = ({ room, word, timer, hasSubmitted, onSubmit, onLeave
     }
   };
 
-  const timePercent = (timer / 60) * 100;
+  const timePercent = (timer / 30) * 100;
   const isLowTime = timer <= 10;
 
   return (
