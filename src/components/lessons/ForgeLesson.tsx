@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Check, Loader2, AlertCircle, Sparkles } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Check, Loader2, AlertCircle, Sparkles, ChevronDown, ChevronRight } from "lucide-react";
 import { generateResponse, isApiKeyConfigured } from "@/lib/gemini";
 import { useToast } from "@/hooks/use-toast";
 import { AIOrb } from "../AIOrb";
@@ -25,13 +26,82 @@ export const ForgeLesson = ({ onComplete }: ForgeLessonProps) => {
   const [response, setResponse] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(false);
+  const [generationCount, setGenerationCount] = useState(0);
+  const [badges, setBadges] = useState<string[]>([]);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [challengeMode, setChallengeMode] = useState(false);
+  const [challengeComplete, setChallengeComplete] = useState(false);
+  const [componentCount, setComponentCount] = useState<Record<string, number>>({
+    role: 0,
+    task: 0,
+    context: 0,
+    tone: 0
+  });
   const { toast } = useToast();
 
+  const templates = [
+    {
+      name: "Educational Explainer",
+      icon: "📚",
+      description: "Perfect for learning new concepts",
+      preset: { role: "Teacher", task: "Explain", context: "with examples", tone: "professionally" },
+      topic: "quantum physics",
+      preview: { role: "Teacher", task: "Explain" }
+    },
+    {
+      name: "Creative Writer",
+      icon: "✍️",
+      description: "Build imaginative stories and content",
+      preset: { role: "Friend", task: "Create", context: "in detail", tone: "creatively" },
+      topic: "a short story about time travel",
+      preview: { role: "Friend", task: "Create" }
+    },
+    {
+      name: "Quick Summary",
+      icon: "⚡",
+      description: "Get concise overviews fast",
+      preset: { role: "Journalist", task: "Summarize", context: "in simple terms", tone: "concisely" },
+      topic: "climate change",
+      preview: { role: "Journalist", task: "Summarize" }
+    }
+  ];
+
+  const applyTemplate = (template: typeof templates[0]) => {
+    setSelected(template.preset);
+    setTopic(template.topic);
+    setShowTemplates(false);
+    toast({
+      title: "Template Applied! 🎨",
+      description: `Try the ${template.name} template`,
+    });
+  };
+
   const toggleComponent = (category: string, value: string) => {
+    const wasSelected = selected[category] === value;
+    
     setSelected(prev => ({
       ...prev,
       [category]: prev[category] === value ? "" : value
     }));
+
+    // Track component usage for badges
+    if (!wasSelected) {
+      setComponentCount(prev => ({
+        ...prev,
+        [category]: prev[category] + 1
+      }));
+
+      // Check if user tried all options in a category
+      if (componentCount[category] + 1 === components[category as keyof typeof components].length) {
+        if (!badges.includes(`all-${category}`)) {
+          setBadges([...badges, `all-${category}`]);
+          toast({
+            title: "Badge Unlocked! 🏆",
+            description: `${category.charAt(0).toUpperCase() + category.slice(1)} Explorer - Tried all ${category}s!`,
+          });
+        }
+      }
+    }
   };
 
   const hasAllComponents = Object.keys(components).every(key => selected[key]) && topic.trim();
@@ -79,13 +149,52 @@ export const ForgeLesson = ({ onComplete }: ForgeLessonProps) => {
 
       setResponse(aiResponse);
       
+      // Track progress and unlock badges
+      const newCount = generationCount + 1;
+      setGenerationCount(newCount);
+
+      // Check challenge completion
+      if (challengeMode && hasAllComponents && !challengeComplete) {
+        setChallengeComplete(true);
+        toast({
+          title: "Challenge Complete! 🎯",
+          description: "You successfully built a complete structured prompt!",
+        });
+      }
+
+      // Unlock badges based on milestones
+      if (newCount === 1 && !badges.includes("first-forge")) {
+        setBadges([...badges, "first-forge"]);
+        toast({
+          title: "Badge Unlocked! 🏆",
+          description: "First Forge - Your first structured prompt!",
+        });
+      }
+
+      if (newCount === 5 && !badges.includes("prompt-smith")) {
+        setBadges([...badges, "prompt-smith"]);
+        toast({
+          title: "Badge Unlocked! 🏆",
+          description: "Prompt Smith - Forged 5 prompts!",
+        });
+      }
+
+      // Badge for using all 4 component types
+      if (Object.keys(selected).length === 4 && !badges.includes("complete-builder")) {
+        setBadges([...badges, "complete-builder"]);
+        toast({
+          title: "Badge Unlocked! 🏆",
+          description: "Complete Builder - Used all components!",
+        });
+      }
+      
       if (!hasGenerated) {
         setHasGenerated(true);
       }
 
       toast({
-        title: "Response Generated!",
-        description: "AI has responded to your forged prompt.",
+        title: "Prompt Forged!",
+        description: "AI has responded to your structured prompt.",
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to generate response";
@@ -102,6 +211,30 @@ export const ForgeLesson = ({ onComplete }: ForgeLessonProps) => {
 
   return (
     <div className="space-y-8 animate-fade-in">
+      {/* Badge Progress */}
+      {badges.length > 0 && (
+        <Card className="glass p-4 border-primary/30 bg-gradient-to-r from-primary/10 to-secondary/10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🏆</span>
+              <span className="text-sm font-semibold">Badges Unlocked: {badges.length}/7</span>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <span className={`text-xl ${badges.includes('first-forge') ? 'opacity-100' : 'opacity-30 grayscale'}`} title="First Forge">🔨</span>
+              <span className={`text-xl ${badges.includes('prompt-smith') ? 'opacity-100' : 'opacity-30 grayscale'}`} title="Prompt Smith">⚒️</span>
+              <span className={`text-xl ${badges.includes('complete-builder') ? 'opacity-100' : 'opacity-30 grayscale'}`} title="Complete Builder">🏗️</span>
+              <span className={`text-xl ${badges.includes('all-role') ? 'opacity-100' : 'opacity-30 grayscale'}`} title="Role Explorer">👤</span>
+              <span className={`text-xl ${badges.includes('all-task') ? 'opacity-100' : 'opacity-30 grayscale'}`} title="Task Explorer">🎯</span>
+              <span className={`text-xl ${badges.includes('all-context') ? 'opacity-100' : 'opacity-30 grayscale'}`} title="Context Explorer">📚</span>
+              <span className={`text-xl ${badges.includes('all-tone') ? 'opacity-100' : 'opacity-30 grayscale'}`} title="Tone Explorer">🎨</span>
+            </div>
+          </div>
+          <div className="text-xs text-center mt-2 text-muted-foreground">
+            Prompts forged: {generationCount}/5 • Explore all options in each category!
+          </div>
+        </Card>
+      )}
+
       <Card className="glass p-8 border-primary/30">
         <h2 className="text-3xl font-display font-bold text-gradient mb-4">
           🔨 Lesson 3: Prompt Structuring
@@ -109,6 +242,68 @@ export const ForgeLesson = ({ onComplete }: ForgeLessonProps) => {
         <p className="text-lg text-muted-foreground mb-6">
           Build the perfect prompt by selecting components. A well-structured prompt includes a role, task, context, and tone.
         </p>
+
+        {/* Template Quick-Start */}
+        <Collapsible open={showTemplates} onOpenChange={setShowTemplates} className="mb-6">
+          <Card className="glass border-green-500/30">
+            <CardContent className="p-6">
+              <CollapsibleTrigger className="w-full">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-full bg-green-500/20">
+                      <Sparkles className="w-5 h-5 text-green-400" />
+                    </div>
+                    <div className="text-left">
+                      <h3 className="text-lg font-semibold">Quick-Start Templates</h3>
+                      <p className="text-sm text-muted-foreground">Apply pre-built structures to learn faster</p>
+                    </div>
+                  </div>
+                  {showTemplates ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                </div>
+              </CollapsibleTrigger>
+              
+              <CollapsibleContent>
+                <div className="grid md:grid-cols-3 gap-4 mt-6">
+                  {templates.map((template) => (
+                    <Card 
+                      key={template.name}
+                      className="glass border-green-500/20 hover:border-green-500/50 transition-all cursor-pointer"
+                      onClick={() => applyTemplate(template)}
+                    >
+                      <CardContent className="p-4 space-y-2">
+                        <div className="text-2xl mb-2">{template.icon}</div>
+                        <h4 className="font-semibold text-sm">{template.name}</h4>
+                        <p className="text-xs text-muted-foreground">{template.description}</p>
+                        
+                        <div className="pt-3 space-y-1 text-xs border-t border-primary/20">
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">Role:</span>
+                            <span className="text-green-400">{template.preview.role}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">Task:</span>
+                            <span className="text-green-400">{template.preview.task}</span>
+                          </div>
+                        </div>
+                        
+                        <Button 
+                          size="sm" 
+                          className="w-full mt-3 bg-green-500/20 hover:bg-green-500/30 border border-green-500/30"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            applyTemplate(template);
+                          }}
+                        >
+                          Apply Template
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </CardContent>
+          </Card>
+        </Collapsible>
 
         <div className="grid md:grid-cols-2 gap-8">
           {/* Component Selection */}
@@ -312,6 +507,92 @@ export const ForgeLesson = ({ onComplete }: ForgeLessonProps) => {
               <AIOrb mood={isLoading ? "thinking" : response ? "happy" : "neutral"} intensity={isLoading ? 1.2 : response ? 1 : 0.5} />
             </div>
           </div>
+        </div>
+      </Card>
+
+      {/* Challenge Mode */}
+      <Card className="glass p-6 border-yellow-500/30">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-full bg-yellow-500/20">
+              <Sparkles className="w-5 h-5 text-yellow-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">Master Builder Challenge</h3>
+              <p className="text-sm text-muted-foreground">
+                Build a complete prompt using all four components
+              </p>
+            </div>
+          </div>
+
+          {!challengeMode ? (
+            <Button
+              onClick={() => {
+                setChallengeMode(true);
+                setSelected({});
+                setTopic("");
+                setResponse("");
+                toast({
+                  title: "Challenge Started! 🎯",
+                  description: "Select one from each category and add a topic",
+                });
+              }}
+              className="w-full bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/30"
+            >
+              Start Challenge
+            </Button>
+          ) : challengeComplete ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 p-4 rounded-lg bg-green-500/10 border border-green-500/30">
+                <Check className="w-5 h-5 text-green-400" />
+                <p className="text-sm font-semibold text-green-400">Challenge Complete!</p>
+              </div>
+              <Button
+                onClick={() => {
+                  setChallengeMode(false);
+                  setChallengeComplete(false);
+                }}
+                variant="outline"
+                className="w-full"
+              >
+                Try Another Challenge
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="p-4 rounded-lg bg-yellow-500/5 border border-yellow-500/20">
+                <p className="text-sm font-semibold mb-2">Progress:</p>
+                <div className="space-y-1 text-sm">
+                  <div className="flex items-center gap-2">
+                    {selected.role ? <Check className="w-4 h-4 text-green-400" /> : <div className="w-4 h-4 border border-muted-foreground/30 rounded" />}
+                    <span>Select a Role</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {selected.task ? <Check className="w-4 h-4 text-green-400" /> : <div className="w-4 h-4 border border-muted-foreground/30 rounded" />}
+                    <span>Select a Task</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {selected.context ? <Check className="w-4 h-4 text-green-400" /> : <div className="w-4 h-4 border border-muted-foreground/30 rounded" />}
+                    <span>Select a Context</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {selected.tone ? <Check className="w-4 h-4 text-green-400" /> : <div className="w-4 h-4 border border-muted-foreground/30 rounded" />}
+                    <span>Select a Tone</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {topic.trim() ? <Check className="w-4 h-4 text-green-400" /> : <div className="w-4 h-4 border border-muted-foreground/30 rounded" />}
+                    <span>Enter a Topic</span>
+                  </div>
+                </div>
+              </div>
+              
+              {hasAllComponents && (
+                <p className="text-sm text-green-400 text-center">
+                  ✓ All components selected! Click "Forge Prompt" to complete the challenge
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </Card>
 

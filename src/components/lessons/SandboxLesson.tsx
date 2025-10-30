@@ -16,7 +16,58 @@ export const SandboxLesson = ({ onComplete }: SandboxLessonProps) => {
   const [response, setResponse] = useState("");
   const [experimented, setExperimented] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [promptCount, setPromptCount] = useState(0);
+  const [badges, setBadges] = useState<string[]>([]);
+  const [showChallenge, setShowChallenge] = useState(false);
+  const [challengeAnswer, setChallengeAnswer] = useState("");
+  const [challengeResult, setChallengeResult] = useState<"correct" | "incorrect" | null>(null);
   const { toast } = useToast();
+
+  const challenges = [
+    {
+      id: "clear",
+      title: "Write a clear prompt",
+      description: "Ask AI to explain something specific (e.g., 'Explain photosynthesis to a 10-year-old')",
+      keywords: ["explain", "describe", "tell", "what is", "how does"]
+    },
+    {
+      id: "detailed",
+      title: "Add details",
+      description: "Write a prompt with at least 3 specific details (e.g., 'Write a 50-word story about a brave cat in space')",
+      keywords: ["word", "sentence", "short", "long", "specific", "about"]
+    },
+    {
+      id: "creative",
+      title: "Be creative",
+      description: "Ask AI to create something fun (e.g., 'Invent a new ice cream flavor and describe it')",
+      keywords: ["create", "invent", "imagine", "make", "design"]
+    }
+  ];
+
+  const checkChallenge = () => {
+    const answer = challengeAnswer.toLowerCase();
+    const matchCount = challenges[0].keywords.filter(keyword => 
+      answer.includes(keyword.toLowerCase())
+    ).length;
+
+    if (matchCount >= 1 && answer.length > 10) {
+      setChallengeResult("correct");
+      if (!badges.includes("challenger")) {
+        setBadges([...badges, "challenger"]);
+        toast({
+          title: "Badge Unlocked! 🏆",
+          description: "Challenge Champion!",
+        });
+      }
+    } else {
+      setChallengeResult("incorrect");
+      toast({
+        title: "Try Again! 💪",
+        description: "Make your prompt more specific and detailed.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSubmit = async () => {
     // Check if API key is configured
@@ -36,6 +87,33 @@ export const SandboxLesson = ({ onComplete }: SandboxLessonProps) => {
       // Call Gemini API to generate response
       const aiResponse = await generateLessonResponse(prompt);
       setResponse(aiResponse);
+      
+      // Track progress and unlock badges
+      const newCount = promptCount + 1;
+      setPromptCount(newCount);
+
+      // Unlock badges based on milestones
+      if (newCount === 1 && !badges.includes("first-prompt")) {
+        setBadges([...badges, "first-prompt"]);
+        toast({
+          title: "Badge Unlocked! 🏆",
+          description: "First Prompt!",
+        });
+      }
+      if (newCount === 3 && !badges.includes("explorer")) {
+        setBadges([...badges, "explorer"]);
+        toast({
+          title: "Badge Unlocked! 🏆",
+          description: "Prompt Explorer - 3 prompts tried!",
+        });
+      }
+      if (prompt.length > 50 && !badges.includes("detailed")) {
+        setBadges([...badges, "detailed"]);
+        toast({
+          title: "Badge Unlocked! 🏆",
+          description: "Detail Master - Detailed prompt!",
+        });
+      }
       
       if (!experimented) {
         setExperimented(true);
@@ -60,6 +138,27 @@ export const SandboxLesson = ({ onComplete }: SandboxLessonProps) => {
 
   return (
     <div className="space-y-8 animate-fade-in">
+      {/* Badge Progress */}
+      {badges.length > 0 && (
+        <Card className="glass p-4 border-primary/30 bg-gradient-to-r from-primary/10 to-secondary/10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🏆</span>
+              <span className="text-sm font-semibold">Badges Unlocked: {badges.length}/4</span>
+            </div>
+            <div className="flex gap-2">
+              <span className={`text-xl ${badges.includes('first-prompt') ? 'opacity-100' : 'opacity-30 grayscale'}`} title="First Prompt">✨</span>
+              <span className={`text-xl ${badges.includes('explorer') ? 'opacity-100' : 'opacity-30 grayscale'}`} title="Explorer">🚀</span>
+              <span className={`text-xl ${badges.includes('detailed') ? 'opacity-100' : 'opacity-30 grayscale'}`} title="Detail Master">📝</span>
+              <span className={`text-xl ${badges.includes('challenger') ? 'opacity-100' : 'opacity-30 grayscale'}`} title="Challenge Champion">🎯</span>
+            </div>
+          </div>
+          <div className="text-xs text-center mt-2 text-muted-foreground">
+            Try more prompts: {promptCount}/3 • Write 50+ char prompt • Complete challenge
+          </div>
+        </Card>
+      )}
+
       <Card className="glass p-8 border-primary/30">
         <h2 className="text-3xl font-display font-bold text-gradient mb-4">
           🎯 Lesson 1: What is a Prompt?
@@ -235,6 +334,83 @@ export const SandboxLesson = ({ onComplete }: SandboxLessonProps) => {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Challenge Mode */}
+        <div className="glass p-6 rounded-lg border border-yellow-500/30 bg-yellow-500/5 mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🎯</span>
+              <h4 className="text-lg font-semibold text-yellow-500">Challenge Yourself!</h4>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setShowChallenge(!showChallenge);
+                setChallengeAnswer("");
+                setChallengeResult(null);
+              }}
+              className="border-yellow-500/30 hover:border-yellow-500/50"
+            >
+              {showChallenge ? "Hide" : "Try"} Challenge
+            </Button>
+          </div>
+
+          {showChallenge && (
+            <div className="space-y-4">
+              <div className="glass p-4 rounded border border-yellow-500/20">
+                <p className="text-sm font-semibold text-yellow-500 mb-2">Your Mission:</p>
+                <p className="text-sm text-muted-foreground">
+                  Write a prompt that asks AI to explain something to a specific audience (like a kid, teenager, or expert). 
+                  Be clear and specific about what you want!
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Example: "Explain black holes to a 10-year-old in simple words"
+                </p>
+              </div>
+
+              <Textarea
+                value={challengeAnswer}
+                onChange={(e) => {
+                  setChallengeAnswer(e.target.value);
+                  setChallengeResult(null);
+                }}
+                placeholder="Write your challenge prompt here..."
+                className="min-h-[100px] glass border-yellow-500/20 focus:border-yellow-500/50"
+              />
+
+              <Button
+                onClick={checkChallenge}
+                disabled={!challengeAnswer.trim()}
+                className="w-full bg-gradient-to-r from-yellow-500 to-orange-500"
+              >
+                Check My Prompt
+              </Button>
+
+              {challengeResult && (
+                <div className={`glass p-4 rounded border ${
+                  challengeResult === "correct" 
+                    ? "border-green-500/30 bg-green-500/10" 
+                    : "border-red-500/30 bg-red-500/10"
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{challengeResult === "correct" ? "✅" : "❌"}</span>
+                    <p className="text-sm font-semibold">
+                      {challengeResult === "correct" 
+                        ? "Perfect! You've mastered clear prompts!" 
+                        : "Try again! Make it more specific and clear."}
+                    </p>
+                  </div>
+                  {challengeResult === "incorrect" && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Hint: Use words like "explain", "describe", or "tell me about" and be specific!
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </Card>
 

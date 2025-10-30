@@ -20,6 +20,12 @@ export const ReactorLesson = ({ onComplete }: ReactorLessonProps) => {
   const [response, setResponse] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(false);
+  const [generationCount, setGenerationCount] = useState(0);
+  const [badges, setBadges] = useState<string[]>([]);
+  const [showComparison, setShowComparison] = useState(false);
+  const [comparisonResponses, setComparisonResponses] = useState<{low: string, high: string}>({low: "", high: ""});
+  const [showChallenge, setShowChallenge] = useState(false);
+  const [triedExtremes, setTriedExtremes] = useState(false);
   const { toast } = useToast();
 
   const handleGenerate = async () => {
@@ -63,6 +69,41 @@ export const ReactorLesson = ({ onComplete }: ReactorLessonProps) => {
 
       setResponse(aiResponse);
       
+      // Track progress and unlock badges
+      const newCount = generationCount + 1;
+      setGenerationCount(newCount);
+
+      // Check for extreme settings (all low or all high)
+      if ((tone <= 10 && detail <= 10 && creativity <= 10) || 
+          (tone >= 90 && detail >= 90 && creativity >= 90)) {
+        if (!triedExtremes) {
+          setTriedExtremes(true);
+          if (!badges.includes("extremist")) {
+            setBadges([...badges, "extremist"]);
+            toast({
+              title: "Badge Unlocked! 🏆",
+              description: "Extremist - Tried extreme settings!",
+            });
+          }
+        }
+      }
+
+      // Unlock badges based on milestones
+      if (newCount === 1 && !badges.includes("first-gen")) {
+        setBadges([...badges, "first-gen"]);
+        toast({
+          title: "Badge Unlocked! 🏆",
+          description: "First Generation!",
+        });
+      }
+      if (newCount === 5 && !badges.includes("experimenter")) {
+        setBadges([...badges, "experimenter"]);
+        toast({
+          title: "Badge Unlocked! 🏆",
+          description: "Experimenter - 5 generations!",
+        });
+      }
+      
       if (!hasGenerated) {
         setHasGenerated(true);
       }
@@ -84,10 +125,67 @@ export const ReactorLesson = ({ onComplete }: ReactorLessonProps) => {
     }
   };
 
+  const generateComparison = async () => {
+    if (!isApiKeyConfigured()) return;
+    
+    setIsLoading(true);
+    try {
+      // Generate with low settings
+      const lowResponse = await generateResponse({
+        prompt: basePrompt,
+        temperature: 0.3,
+        maxTokens: 100,
+      });
+      
+      // Generate with high settings
+      const highResponse = await generateResponse({
+        prompt: basePrompt,
+        temperature: 0.9,
+        maxTokens: 300,
+      });
+
+      setComparisonResponses({ low: lowResponse, high: highResponse });
+      setShowComparison(true);
+
+      if (!badges.includes("comparator")) {
+        setBadges([...badges, "comparator"]);
+        toast({
+          title: "Badge Unlocked! 🏆",
+          description: "Comparator - Compared settings!",
+        });
+      }
+    } catch (error) {
+      console.error("Comparison error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const orbIntensity = isLoading ? 1.2 : (tone + detail + creativity) / 300;
 
   return (
     <div className="space-y-8 animate-fade-in">
+      {/* Badge Progress */}
+      {badges.length > 0 && (
+        <Card className="glass p-4 border-primary/30 bg-gradient-to-r from-primary/10 to-secondary/10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🏆</span>
+              <span className="text-sm font-semibold">Badges Unlocked: {badges.length}/4</span>
+            </div>
+            <div className="flex gap-2">
+              <span className={`text-xl ${badges.includes('first-gen') ? 'opacity-100' : 'opacity-30 grayscale'}`} title="First Generation">⚡</span>
+              <span className={`text-xl ${badges.includes('experimenter') ? 'opacity-100' : 'opacity-30 grayscale'}`} title="Experimenter">🔬</span>
+              <span className={`text-xl ${badges.includes('extremist') ? 'opacity-100' : 'opacity-30 grayscale'}`} title="Extremist">🎚️</span>
+              <span className={`text-xl ${badges.includes('comparator') ? 'opacity-100' : 'opacity-30 grayscale'}`} title="Comparator">⚖️</span>
+            </div>
+          </div>
+          <div className="text-xs text-center mt-2 text-muted-foreground">
+            Generations: {generationCount}/5 • Try extreme settings • Use comparison tool
+          </div>
+        </Card>
+      )}
+
       <Card className="glass p-8 border-primary/30">
         <h2 className="text-3xl font-display font-bold text-gradient mb-4">
           🧠 Lesson 2: How AI Interprets Prompts
@@ -312,6 +410,80 @@ export const ReactorLesson = ({ onComplete }: ReactorLessonProps) => {
             <div className="flex justify-center pt-4">
               <AIOrb mood={isLoading ? "thinking" : response ? "happy" : "neutral"} intensity={orbIntensity} />
             </div>
+          </div>
+
+          {/* Comparison Tool */}
+          <div className="glass p-6 rounded-lg border border-blue-500/30 bg-blue-500/5 mt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">⚖️</span>
+                <h4 className="text-lg font-semibold text-blue-400">Compare Settings!</h4>
+              </div>
+              <Button
+                size="sm"
+                onClick={generateComparison}
+                disabled={isLoading || !basePrompt.trim()}
+                className="bg-gradient-to-r from-blue-500 to-blue-600"
+              >
+                {isLoading ? "Generating..." : "Compare Low vs High"}
+              </Button>
+            </div>
+
+            {showComparison && comparisonResponses.low && (
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="glass p-4 rounded border border-red-500/30 bg-red-500/5">
+                  <p className="text-sm font-semibold text-red-400 mb-2">📊 Low Settings (Conservative)</p>
+                  <p className="text-xs text-muted-foreground">{comparisonResponses.low}</p>
+                </div>
+                <div className="glass p-4 rounded border border-green-500/30 bg-green-500/5">
+                  <p className="text-sm font-semibold text-green-400 mb-2">🚀 High Settings (Creative)</p>
+                  <p className="text-xs text-muted-foreground">{comparisonResponses.high}</p>
+                </div>
+              </div>
+            )}
+            <p className="text-xs text-center text-muted-foreground mt-4">
+              💡 See how different settings create different responses!
+            </p>
+          </div>
+
+          {/* Challenge Mode */}
+          <div className="glass p-6 rounded-lg border border-yellow-500/30 bg-yellow-500/5 mt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🎯</span>
+                <h4 className="text-lg font-semibold text-yellow-500">Quick Challenge!</h4>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowChallenge(!showChallenge)}
+                className="border-yellow-500/30 hover:border-yellow-500/50"
+              >
+                {showChallenge ? "Hide" : "Show"} Challenge
+              </Button>
+            </div>
+
+            {showChallenge && (
+              <div className="space-y-4">
+                <div className="glass p-4 rounded border border-yellow-500/20">
+                  <p className="text-sm font-semibold text-yellow-500 mb-2">Your Mission:</p>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Try to get 3 completely different responses for the same prompt:
+                  </p>
+                  <ul className="text-xs text-muted-foreground space-y-1 ml-4">
+                    <li>1️⃣ Set all sliders to LOW (0-20%) for a short, factual answer</li>
+                    <li>2️⃣ Set all sliders to MEDIUM (40-60%) for a balanced answer</li>
+                    <li>3️⃣ Set all sliders to HIGH (80-100%) for a creative, detailed answer</li>
+                  </ul>
+                </div>
+                <div className="flex items-center justify-center gap-2 glass p-3 rounded border border-green-500/30 bg-green-500/5">
+                  <span className="text-2xl">✅</span>
+                  <p className="text-sm font-semibold text-green-400">
+                    Generations so far: {generationCount} - Keep experimenting!
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </Card>
