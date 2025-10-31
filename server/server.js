@@ -20,23 +20,45 @@ const allowedOrigins = [
   process.env.FRONTEND_URL, // Add production frontend URL to .env
 ].filter(Boolean);
 
-const io = new Server(httpServer, {
-  cors: {
-    origin: allowedOrigins,
-    methods: ["GET", "POST"],
-    credentials: true
+console.log('🌐 Allowed origins:', allowedOrigins);
+
+// Dynamic CORS function for flexibility
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // In development, allow all localhost
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return callback(null, true);
+    }
+    
+    // Check if origin is in allowed list
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    }
+    
+    // In production, you can be more strict or log the rejected origin
+    console.warn('⚠️ CORS blocked origin:', origin);
+    callback(new Error('Not allowed by CORS'));
   },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+};
+
+const io = new Server(httpServer, {
+  cors: corsOptions,
   // Performance optimizations
   pingTimeout: 60000,
   pingInterval: 25000,
   transports: ['websocket', 'polling'],
   allowUpgrades: true,
+  path: '/socket.io/',
 });
 
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true
-}));
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '1mb' })); // Limit payload size
 app.use(compression()); // Enable gzip compression
 
