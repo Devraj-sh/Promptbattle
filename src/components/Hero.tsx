@@ -8,7 +8,7 @@ export const Hero = () => {
       {/* Background Effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-secondary/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-secondary/20 rounded-full blur-3xl animate-float animate-delay-1000"></div>
       </div>
 
       {/* Content */}
@@ -51,14 +51,14 @@ export const Hero = () => {
             </Button>
           </Link>
 
-          <Link to="/multiplayer">
+          <Link to="/battle">
             <Button 
               size="lg" 
               variant="outline"
               className="group border-2 border-primary hover:bg-primary/10 hover:border-primary-glow px-8 py-6 text-lg font-bold"
             >
               <Users className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-              Multiplayer
+              Prompt Battle
             </Button>
           </Link>
         </div>
