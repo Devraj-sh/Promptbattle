@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,52 +20,114 @@ export const Arena = () => {
   const [currentLevel, setCurrentLevel] = useState(0);
   const [userPrompt, setUserPrompt] = useState("");
   const [score, setScore] = useState(0);
-  const [feedback, setFeedback] = useState<any>(null);
+  const [feedback, setFeedback] = useState<{
+    clarity: number;
+    specificity: number;
+    creativity: number;
+    structure: number;
+    feedbackText?: string;
+    tip?: string;
+  } | null>(null);
+  const [isEvaluating, setIsEvaluating] = useState(false);
   const { toast } = useToast();
 
   const level = levels[currentLevel];
 
-  const handleSubmit = () => {
-    // Mock AI scoring
-    const scores = evaluatePrompt(userPrompt, level.id);
-    setFeedback(scores);
+  // Memoize backend URL to avoid recalculation
+  const backendUrl = useMemo(
+    () => import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001',
+    []
+  );
+
+  // Memoize XP value to avoid unnecessary localStorage reads
+  const currentXP = useMemo(
+    () => parseInt(localStorage.getItem('arena_xp') || '0'),
+    [] // Calculate once on mount
+  );
+
+  const handleSubmit = useCallback(async () => {
+    setIsEvaluating(true);
     
-    const totalScore = Math.round(
-      (scores.clarity + scores.specificity + scores.creativity + scores.structure) / 4
-    );
-    setScore(totalScore);
+    try {
+      // Call the backend AI evaluation API
+      const response = await fetch(`${backendUrl}/api/evaluate-prompt`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: userPrompt,
+          challenge: level.challenge,
+          levelId: level.id,
+        }),
+      });
 
-    // Store progress
-    const xpGained = totalScore;
-    const currentXP = parseInt(localStorage.getItem('arena_xp') || '0');
-    localStorage.setItem('arena_xp', (currentXP + xpGained).toString());
+      if (!response.ok) {
+        throw new Error('Failed to evaluate prompt');
+      }
 
-    // Leaderboard entry
-    const username = localStorage.getItem('username') || 'Player';
-    const leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
-    leaderboard.push({
-      username,
-      level: level.name,
-      score: totalScore,
-      creativity: scores.creativity,
-      date: new Date().toISOString(),
-    });
-    localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+      const evaluation = await response.json();
+      
+      // Extract scores and set feedback
+      const scores = {
+        clarity: evaluation.clarity,
+        specificity: evaluation.specificity,
+        creativity: evaluation.creativity,
+        structure: evaluation.structure,
+      };
+      
+      setFeedback({
+        ...scores,
+        feedbackText: evaluation.feedback,
+        tip: evaluation.tip,
+      });
+      
+      const totalScore = Math.round(
+        (scores.clarity + scores.specificity + scores.creativity + scores.structure) / 4
+      );
+      setScore(totalScore);
 
-    toast({
-      title: "Prompt Scored!",
-      description: `You earned ${totalScore} points! Check the leaderboard.`,
-    });
-  };
+      // Store progress
+      const xpGained = totalScore;
+      const currentXP = parseInt(localStorage.getItem('arena_xp') || '0');
+      localStorage.setItem('arena_xp', (currentXP + xpGained).toString());
 
-  const handleNext = () => {
+      // Leaderboard entry
+      const username = localStorage.getItem('username') || 'Player';
+      const leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
+      leaderboard.push({
+        username,
+        level: level.name,
+        score: totalScore,
+        creativity: scores.creativity,
+        date: new Date().toISOString(),
+      });
+      localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+
+      toast({
+        title: "AI Evaluation Complete!",
+        description: `You earned ${totalScore} points!`,
+      });
+    } catch (error) {
+      console.error('Evaluation error:', error);
+      toast({
+        title: "Evaluation Failed",
+        description: "Unable to evaluate prompt. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsEvaluating(false);
+    }
+  }, [userPrompt, level, backendUrl, toast]);
+
+  const handleNext = useCallback(() => {
     if (currentLevel < levels.length - 1) {
       setCurrentLevel(currentLevel + 1);
       setUserPrompt("");
       setFeedback(null);
       setScore(0);
     }
-  };
+  }, [currentLevel]);
 
   return (
     <div className="min-h-screen p-4 py-12">
@@ -136,12 +198,12 @@ export const Arena = () => {
 
             <Button
               onClick={handleSubmit}
-              disabled={!userPrompt.trim() || !!feedback}
+              disabled={!userPrompt.trim() || !!feedback || isEvaluating}
               className="w-full bg-gradient-to-r from-secondary to-secondary-glow"
               size="lg"
             >
               <Sparkles className="w-5 h-5 mr-2" />
-              Submit Prompt
+              {isEvaluating ? 'AI Evaluating...' : 'Submit Prompt'}
             </Button>
           </div>
         </Card>
@@ -154,13 +216,13 @@ export const Arena = () => {
             </h3>
             
             <div className="grid md:grid-cols-2 gap-6 mb-6">
-              {Object.entries(feedback).map(([key, value]) => (
+              {['clarity', 'specificity', 'creativity', 'structure'].map((key) => (
                 <div key={key} className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-semibold capitalize">{key}</span>
-                    <span className="text-lg font-bold text-primary">{String(value)}%</span>
+                    <span className="text-lg font-bold text-primary">{feedback[key]}%</span>
                   </div>
-                  <Progress value={value as number} className="h-2" />
+                  <Progress value={feedback[key]} className="h-2" />
                 </div>
               ))}
             </div>
@@ -170,12 +232,23 @@ export const Arena = () => {
               <p className="text-4xl font-display font-black text-gradient">{score}/100</p>
             </div>
 
-            <div className="glass p-6 rounded-lg border border-secondary/20 bg-secondary/5 mb-6">
-              <p className="text-sm font-semibold mb-2">💡 Suggestion:</p>
-              <p className="text-sm text-muted-foreground">
-                {generateSuggestion(feedback)}
-              </p>
-            </div>
+            {feedback.feedbackText && (
+              <div className="glass p-6 rounded-lg border border-secondary/20 bg-secondary/5 mb-4">
+                <p className="text-sm font-semibold mb-2">� AI Feedback:</p>
+                <p className="text-sm text-muted-foreground">
+                  {feedback.feedbackText}
+                </p>
+              </div>
+            )}
+
+            {feedback.tip && (
+              <div className="glass p-6 rounded-lg border border-secondary/20 bg-secondary/5 mb-6">
+                <p className="text-sm font-semibold mb-2">💡 Tip:</p>
+                <p className="text-sm text-muted-foreground">
+                  {feedback.tip}
+                </p>
+              </div>
+            )}
 
             <Button
               onClick={handleNext}
@@ -200,32 +273,3 @@ export const Arena = () => {
     </div>
   );
 };
-
-function evaluatePrompt(prompt: string, levelId: number): any {
-  // Mock scoring logic
-  const baseScore = 60;
-  const randomVariance = Math.floor(Math.random() * 20);
-  
-  const hasContext = prompt.length > 50;
-  const hasSpecifics = /\b(specific|detailed|example|step|format)\b/i.test(prompt);
-  const isCreative = /\b(creative|innovative|unique|interesting)\b/i.test(prompt);
-  const isStructured = prompt.includes("role") || prompt.includes("act as") || prompt.includes(":");
-
-  return {
-    clarity: Math.min(100, baseScore + randomVariance + (hasContext ? 10 : 0)),
-    specificity: Math.min(100, baseScore + randomVariance + (hasSpecifics ? 15 : 0)),
-    creativity: Math.min(100, baseScore + randomVariance + (isCreative ? 12 : 0)),
-    structure: Math.min(100, baseScore + randomVariance + (isStructured ? 8 : 0)),
-  };
-}
-
-function generateSuggestion(feedback: any): string {
-  const lowest = Object.entries(feedback).reduce((a, b) => (b[1] as number) < (a[1] as number) ? b : a);
-  const suggestions = {
-    clarity: "Try being more direct and concise. State exactly what you want the AI to do.",
-    specificity: "Add more specific details about the format, style, or requirements you need.",
-    creativity: "Include words that encourage creative thinking, like 'innovative' or 'unique approach'.",
-    structure: "Consider using a role (e.g., 'Act as a...') and organizing your prompt in clear sections.",
-  };
-  return suggestions[lowest[0] as keyof typeof suggestions] || "Great job! Keep refining your prompt style.";
-}

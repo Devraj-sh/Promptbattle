@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { SocketContext } from './SocketContext';
 
@@ -7,11 +7,15 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    const socketInstance = io('http://localhost:3001', {
+    // Use environment variable for backend URL, fallback to localhost
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+    
+    const socketInstance = io(backendUrl, {
       autoConnect: true,
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 5
+      reconnectionAttempts: 5,
+      transports: ['websocket', 'polling'], // Prefer WebSocket
     });
 
     socketInstance.on('connect', () => {
@@ -35,8 +39,11 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({ socket, connected }), [socket, connected]);
+
   return (
-    <SocketContext.Provider value={{ socket, connected }}>
+    <SocketContext.Provider value={contextValue}>
       {children}
     </SocketContext.Provider>
   );
